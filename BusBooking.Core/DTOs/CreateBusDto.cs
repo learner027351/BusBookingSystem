@@ -1,28 +1,20 @@
-﻿
-using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace BusBooking.Core.Entities
+namespace BusBooking.Core.DTOs
 {
-    public  class Bus
+    public class CreateBusDto
     {
-        public int Id { get; set; }
-
-        [Required]
         public string BusNumber { get; set; } = null!;
         public string Source { get; set; } = null!;
-
         public string Destination { get; set; } = null!;
 
-        public string TotalSeats { get; set; } = null!;
-
+        public int TotalSeats { get; set; }
 
         public DateTime TravelDate { get; set; }
-
         public TimeSpan TravelTime { get; set; }
 
         public decimal Price { get; set; }
-
-        public ICollection<Booking>? Bookings { get; set; }
-
     }
 }

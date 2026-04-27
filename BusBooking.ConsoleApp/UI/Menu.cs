@@ -1,4 +1,5 @@
 ﻿using BusBooking.ConsoleApp.Services;
+using BusBooking.Core.DTOs;
 using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
@@ -44,60 +45,124 @@ namespace BusBooking.ConsoleApp.UI
             {
                 PrintHeader("BUS BOOKING SYSTEM");
 
-                Console.WriteLine("1. View All Buses");
-                Console.WriteLine("2. Search Buses");
-                Console.WriteLine("3. Book Seat");
-                Console.WriteLine("4. Show Seat Layout");
-                Console.WriteLine("5. View My Bookings");
-                Console.WriteLine("6. Cancel Booking");
-                Console.WriteLine("7. Simulate Concurrent Booking");
-                Console.WriteLine("8. Exit");
+                Console.WriteLine("1. Login");
+                Console.WriteLine("2. Register");
+                Console.WriteLine("3. Exit");
 
-                PrintLine();
-                Console.Write("Enter choice: ");
+                Console.Write("Enter your choice: ");
 
+                var choice = Console.ReadLine();
+
+                if (choice == "1")
+                    await LoginFlow();
+                else if (choice == "2")
+                    await RegisterFlow();
+                else
+                    return;
+
+            }
+    
+        }
+        private async Task LoginFlow()
+        {
+            Console.Write("Username: ");
+            var username = Console.ReadLine();
+
+            if (!Regex.IsMatch(username ?? "", @"^[a-zA-Z0-9]+$"))
+            {
+                Console.WriteLine(" Error: The username must contain only A-Z or a-z characters.");
+                return;
+            }
+
+            Console.Write("Password: ");
+            var password = Console.ReadLine();
+
+            if (!Regex.IsMatch(password ?? "", @"^[a-zA-Z0-9]+$"))
+            {
+                Console.WriteLine(" Error: The username must contain only A-Z or a-z characters.");
+                return;
+            }
+
+
+            var (token, role) = await _api.Login(username!, password!);
+
+            //var (token, role) = await _api.Login(username!, password!);
+
+            if (string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine("Login failed. Try again.");
+                Pause();
+                return;
+            }
+
+            _api.SetToken(token);
+
+            if (role == "Admin")
+                await AdminMenu();
+            else
+                await UserMenu();
+        }
+        private async Task AdminMenu()
+        {
+            while (true)
+            {
+                PrintHeader("ADMIN PANEL");
+
+                Console.WriteLine("1. Add Bus");
+                Console.WriteLine("2. Delete Bus");
+                Console.WriteLine("3. View All Buses");
+                Console.WriteLine("4. Logout");
+
+                Console.Write("Enter your choice: ");
                 var choice = Console.ReadLine();
 
                 switch (choice)
                 {
                     case "1":
-                        await ViewBuses();
+                        await AddBus();
                         break;
 
                     case "2":
-                        await Search();
+                        await DeleteBus();
                         break;
-
                     case "3":
-                        await Book();
+                        await ViewBuses();
                         break;
-
                     case "4":
-                        await ShowSeatLayout();
-                        break;
-                    case "5":
-                        await ViewBookings();
-                        break;
-
-                    case "6":
-                        await Cancel();
-                        break;
-
-                    case "7":
-                        await SimultaneousBook();
-                        break;
-
-                    case "8":
                         return;
-
-                    default:
-                        Console.WriteLine("Invalid Choice");
-                        break;
-
                 }
-
             }
-    
+        }
+        private async Task UserMenu()
+        {
+            while (true)
+            {
+                PrintHeader("USER PANEL");
+
+                Console.WriteLine("1. View All Buses");
+                Console.WriteLine("2. Search Buses");
+                Console.WriteLine("3. Book Seat");
+                Console.WriteLine("4. View My Bookings");
+                Console.WriteLine("5. Cancel Booking");
+                Console.WriteLine("6. Seat Layout");
+                Console.WriteLine("7. Simulate Concurrent Booking");
+                Console.WriteLine("8. Logout");
+
+                Console.Write("Enter your Choice: ");
+                var choice = Console.ReadLine();
+
+                switch (choice)
+                {
+                    case "1": await ViewBuses(); break;
+                    case "2": await Search(); break;
+                    case "3": await Book(); break;
+                    case "4": await ViewBookings(); break;
+                    case "5": await Cancel(); break;
+                    case "6": await ShowSeatLayout(); break;
+                    case "7": await SimultaneousBook(); break;
+                    case "8": return;
+                }
+            }
         }
         private async Task ViewBuses()
         {
@@ -112,14 +177,8 @@ namespace BusBooking.ConsoleApp.UI
                 return;
             }
 
-            //Console.WriteLine($"{"ID",-5} {"Bus No",-10} {"Source",-15} {"Destination",-15} {"AvailableSeats",-10}");
-            //PrintLine();
+            var istZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
 
-            //foreach (var b in buses)
-            //{
-            //    string seatInfo = $"{b.AvailableSeats}/{b.TotalSeats}";
-            //    Console.WriteLine($"{b.Id,-5} {b.BusNumber,-10} {b.Source,-15} {b.Destination,-15} {seatInfo,-10}");
-            //}
 
             Console.WriteLine($"{"ID",-3} {"Bus",-8} {"Route",-20} {"Date",-12} {"Time",-8} {"Price",-8} {"Seats",-10}");
             PrintLine();
@@ -129,7 +188,10 @@ namespace BusBooking.ConsoleApp.UI
                 string route = $"{b.Source}->{b.Destination}";
                 string seatInfo = $"{b.AvailableSeats}/{b.TotalSeats}";
 
-                Console.WriteLine($"{b.Id,-3} {b.BusNumber,-8} {route,-20} {b.TravelDate,-12} {b.TravelTime,-8} Rs.{b.Price,-8} {seatInfo,-10}");
+                var istDate = TimeZoneInfo.ConvertTimeFromUtc(b.TravelDate, istZone);
+                var istTime = b.TravelTime;
+
+                Console.WriteLine($"{b.Id,-3} {b.BusNumber,-8} {route,-20} {istDate:yyyy-MM-dd} {istTime,-8} Rs.{b.Price,-8} {seatInfo,-10}");
             }
 
             PrintLine();
@@ -178,13 +240,7 @@ namespace BusBooking.ConsoleApp.UI
             }
 
             Console.WriteLine($"\nResults:\n");
-            //Console.WriteLine($"{"ID",-5} {"Bus No",-10} {"Source",-15} {"Destination",-15}");
-            //PrintLine();
-
-            //foreach (var b in buses)
-            //{
-            //    Console.WriteLine($"{b.Id,-5} {b.BusNumber,-10} {b.Source,-15} {b.Destination,-15}");
-            //}
+            
             Console.WriteLine($"{"ID",-3} {"Bus",-8} {"Date",-12} {"Time",-8} {"Price",-8}");
             PrintLine();
 
@@ -209,13 +265,7 @@ namespace BusBooking.ConsoleApp.UI
                 return;
             }
 
-            Console.Write("Enter User Id: ");
-            if (!int.TryParse(Console.ReadLine(), out int userId))
-            {
-                Console.WriteLine("Invalid User Id");
-                Pause();
-                return;
-            }
+            
 
             Console.Write("Enter Seat Number: ");
             if (!int.TryParse(Console.ReadLine(), out int seat))
@@ -247,7 +297,7 @@ namespace BusBooking.ConsoleApp.UI
                 return;
             }
 
-            var result = await _api.BookSeat(busId, userId, seat,method);
+            var result = await _api.BookSeat(busId, seat,method);
 
             PrintLine();
             Console.WriteLine(result);
@@ -279,15 +329,8 @@ namespace BusBooking.ConsoleApp.UI
         {
             PrintHeader("MY BOOKINGS");
 
-            Console.Write("Enter User Id: ");
-            if (!int.TryParse(Console.ReadLine(), out int userId))
-            {
-                Console.WriteLine("Invalid User Id");
-                Pause();
-                return;
-            }
-
-            var bookings = await _api.GetUserBookings(userId);
+            
+            var bookings=await _api.GetMyBookings();
 
             if (bookings.Count == 0)
             {
@@ -296,24 +339,36 @@ namespace BusBooking.ConsoleApp.UI
                 return;
             }
 
-            //Console.WriteLine($"{"Bus No",-10} {"Seat",-5} {"Route",-25} {"Status",-10}");
-            //PrintLine();
+            
 
-            //foreach (var b in bookings)
-            //{
-            //    string route = $"{b.Source} → {b.Destination}";
-            //    Console.WriteLine($"{b.BusNumber,-10} {b.SeatNumber,-5} {route,-25} {b.Status,-10}");
-            //}
+
             Console.WriteLine($"{"Bus",-8} {"Seat",-5} {"Route",-20} {"Status",-10} {"Time",-20} {"PaymentMethod",-30}");
             PrintLine();
 
             foreach (var b in bookings)
             {
                 string route = $"{b.Source}->{b.Destination}";
+               
                 Console.WriteLine($"{b.BusNumber,-8} {b.SeatNumber,-5} {route,-20} {b.Status,-10} {b.BookingTime:yyyy - MM - dd HH:mm} {b.PaymentMethod,-30}");
             }
 
             PrintLine();
+            Pause();
+        }
+        private async Task RegisterFlow()
+        {
+            Console.Write("Username: ");
+            var username = Console.ReadLine();
+
+            Console.Write("Password: ");
+            var password = Console.ReadLine();
+
+            Console.Write("Role (Admin/User): ");
+            var role = Console.ReadLine();
+
+            var res = await _api.Register(username!, password!, role!);
+
+            Console.WriteLine(res);
             Pause();
         }
 
@@ -327,62 +382,116 @@ namespace BusBooking.ConsoleApp.UI
             Console.WriteLine($"\nSeat Layout for Bus ID: {busId}:\n");
 
             int columns = 4;
+            int aisleIndex = 2;
 
             for (int i = 0; i < seats.Count; i++)
             {
                 var seat = seats[i];
+                int postionInRow = i % columns;
 
-                if (seat.IsBooked)
-                    Console.ForegroundColor = ConsoleColor.Red;
-                else
-                    Console.ForegroundColor = ConsoleColor.Green;
+                if (postionInRow==aisleIndex)
+                {
+                    
+                    Console.Write("  ");
+                }
+
+                Console.ForegroundColor = seat.IsBooked ? ConsoleColor.Red : ConsoleColor.Green;
+                
 
                 Console.Write($"[{seat.SeatNumber:00}] ");
                 Console.ResetColor();
 
-                if ((i + 1) % columns == 0)
+                if (postionInRow==columns-1)
+                {
                     Console.WriteLine();
+
+                }
+                    
             }
 
             Console.WriteLine("\nPress any key to continue...");
             Console.ReadKey();
         }
+        private async Task AddBus()
+        {
+            Console.Write("Bus Number: ");
+            var busNumber = Console.ReadLine();
 
+            Console.Write("Source: ");
+            var source = Console.ReadLine();
+
+            Console.Write("Destination: ");
+            var destination = Console.ReadLine();
+
+            Console.Write("Total Seats: ");
+            int seats = int.Parse(Console.ReadLine()!);
+
+            Console.Write("Travel Date (yyyy-mm-dd): ");
+            DateTime date = DateTime.Parse(Console.ReadLine()!);
+
+            Console.Write("Travel Time (HH:mm:ss): ");
+            TimeSpan time = TimeSpan.Parse(Console.ReadLine()!);
+
+            Console.Write("Price: ");
+            decimal price = decimal.Parse(Console.ReadLine()!);
+
+            var res = await _api.AddBus(new CreateBusDto
+            {
+                BusNumber = busNumber!,
+                Source = source!,
+                Destination = destination!,
+                TotalSeats = seats,
+                TravelDate = date,
+                TravelTime = time,
+                Price = price
+            });
+
+            Console.WriteLine(res);
+            Pause();
+        }
+        private async Task DeleteBus()
+        {
+            Console.Write("Enter Bus Id: ");
+            int id = int.Parse(Console.ReadLine()!);
+
+            var res = await _api.DeleteBus(id);
+
+            Console.WriteLine(res);
+            Pause();
+        }
+
+        
         private async Task SimultaneousBook()
         {
-            Console.Clear();
-            Console.WriteLine("Concurrent user Booking....");
-            PrintLine();
-
-            Console.WriteLine("Enter BusID: ");
+            Console.Write("Bus Id: ");
             int busId = int.Parse(Console.ReadLine()!);
 
-            Console.Write("Enter Seat Number: ");
+            Console.Write("Seat Number: ");
             int seat = int.Parse(Console.ReadLine()!);
-
-            int user1 = 1;
-            int user2 = 2;
 
             string method = "UPI";
 
-            var task1 = Task.Run(async () =>
-            {
-                var result = await _api.BookSeat(busId, user1, seat, method);
-                Console.WriteLine($"User {user1}: {result}");
-            });
+            var client1 = new ApiClient();
+            var client2 = new ApiClient();
 
-            var task2 = Task.Run(async () =>
-            {
-                var result = await _api.BookSeat(busId, user2, seat, method);
-                Console.WriteLine($"User {user2}: {result}");
-            });
+            string User1 = "Ritik";
+            string User2 = "Bhushan";
 
-            await Task.WhenAll(task1, task2);
+            var login1 = await client1.Login("Ritik", "Ritik2022");
+            var login2 = await client2.Login("Bhushan", "Bhushan2023");
 
-            PrintLine();
-            Console.WriteLine("Test Completed");
+            client1.SetToken(login1.token);
+            client2.SetToken(login2.token);
+
+            var t1 = client1.BookSeat(busId, seat, method);
+            var t2 = client2.BookSeat(busId, seat, method);
+
+            var results = await Task.WhenAll(t1, t2);
+
+            Console.WriteLine($"{User1} -> {results[0]}");
+            Console.WriteLine($"{User2} > {results[1]}");
+
             Pause();
-
         }
     }
 }

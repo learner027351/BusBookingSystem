@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
 using Microsoft.EntityFrameworkCore;
 using BusBooking.Core.Entities;
 
@@ -29,10 +27,7 @@ namespace BusBooking.Infrastructure.Data
                 .Property(p => p.Amount)
                 .HasPrecision(18, 2);
 
-            //modelBuilder.Entity<Booking>()
-            //    .HasIndex(b => new { b.BusId, b.SeatNumber })
-            //    .IsUnique()
-            //    .HasFilter("[Status]='Confirmed'");
+            
         }
 
         public DbSet<Bus> Buses { get; set; }

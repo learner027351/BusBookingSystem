@@ -3,10 +3,7 @@ using BusBooking.Core.Entities;
 using BusBooking.Core.Interfaces;
 using BusBooking.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+
 
 namespace BusBooking.Infrastructure.Services
 {
@@ -48,6 +45,36 @@ namespace BusBooking.Infrastructure.Services
                 });
             }
             return res;
+        }
+        public async Task<bool>AddBus(CreateBusDto dto)
+        {
+            var bus = new Bus
+            {
+                BusNumber = dto.BusNumber,
+                Source = dto.Source,
+                Destination = dto.Destination,
+                TotalSeats = dto.TotalSeats.ToString(),
+                TravelDate = dto.TravelDate,
+                TravelTime = dto.TravelTime,
+                Price = dto.Price
+            };
+
+            await _busRepo.AddAsync(bus);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> DeleteBus(int id)
+        {
+            var bus = await _busRepo.GetByIdAsync(id);
+
+            if (bus == null) return false;
+
+            await _busRepo.DeleteAsync(bus);
+            await _context.SaveChangesAsync();
+
+            return true;
         }
 
         public async Task<IEnumerable<BusDto>> SearchBuses(string source,string destination,DateTime date)

@@ -30,5 +30,15 @@ namespace BusBooking.Infrastructure.Repositories
             => await _context.Buses.FindAsync(id);
 
 
+        public async Task AddAsync(Bus bus)
+        {
+            await _context.Buses.AddAsync(bus);
+        }
+
+        public async Task DeleteAsync(Bus bus)
+        {
+            _context.Buses.Remove(bus);
+        }
+
     }
 }

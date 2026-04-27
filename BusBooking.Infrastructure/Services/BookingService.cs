@@ -1,11 +1,9 @@
-﻿using BusBooking.Core.Interfaces;
-using BusBooking.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using BusBooking.Core.DTOs;
 using BusBooking.Core.Entities;
-using BusBooking.Core.DTOs;
+using BusBooking.Core.Interfaces;
+using BusBooking.Infrastructure.Data;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace BusBooking.Infrastructure.Services
 {
@@ -20,31 +18,98 @@ namespace BusBooking.Infrastructure.Services
             _context = context;
         }
 
-        public async Task<bool> BookSeat(int busId, int userId, int seatNumber,PaymentMethod method)
-        {
-            //var exists = await _context.Bookings.AnyAsync(b => b.BusId == busId && b.SeatNumber == seatNumber);
+        //public async Task<bool> BookSeat(int busId, int userId, int seatNumber,PaymentMethod method)
+        //{
 
-            using var transaction=await _context.Database.BeginTransactionAsync();
+
+        //    using var transaction=await _context.Database.BeginTransactionAsync();
+
+        //    try
+        //    {
+
+
+
+
+
+
+        //        var bus = await _context.Buses.FindAsync(busId);
+        //        if (bus == null) return false;
+
+        //        int totalSeats = int.TryParse(bus.TotalSeats, out var seats) ? seats : 0;
+
+        //        if (seatNumber > totalSeats) return false;
+
+        //        var booking = new Booking
+        //        {
+        //            BusId = busId,
+        //            UserId = userId,
+        //            SeatNumber = seatNumber,
+        //            Status = "Confirmed",
+        //            BookingTime = DateTime.UtcNow
+        //        };
+
+        //        //_context.Bookings.Add(booking);
+
+        //        await _bookingrepo.AddAsync(booking);
+
+        //        await _context.SaveChangesAsync();
+
+
+        //        var payment = new Payment
+        //        {
+        //            BookingId = booking.Id,
+        //            Amount = bus.Price, // make sure Price exists
+        //            PaymentMethod = method,
+        //            Status = "Success",
+        //            PaymentDate = DateTime.UtcNow
+        //        };
+
+        //        await _context.Payments.AddAsync(payment);
+        //        await _context.SaveChangesAsync();
+
+        //        await transaction.CommitAsync();
+        //        return true;
+        //    }
+
+        //    catch (DbUpdateException ex)
+        //    {
+
+
+        //        await transaction.RollbackAsync();
+
+        //        if (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2601)
+        //        {
+        //            return false; 
+        //        }
+        //        throw;
+        //    }
+        //}
+        public async Task<BookingResult> BookSeat(int busId, int userId, int seatNumber, PaymentMethod method)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-
-
-
-
-                var isBooked = await _bookingrepo.IsSeatBooked(busId, seatNumber);
-
-
-
-                if (isBooked) return false;
-
-
                 var bus = await _context.Buses.FindAsync(busId);
-                if (bus == null) return false;
+                if (bus == null)
+                {
+                    return new BookingResult
+                    {
+                        Success = false,
+                        Message = "No bus found with this ID"
+                    };
+                }
 
                 int totalSeats = int.TryParse(bus.TotalSeats, out var seats) ? seats : 0;
 
-                if (seatNumber > totalSeats) return false;
+                if (seatNumber <= 0 || seatNumber > totalSeats)
+                {
+                    return new BookingResult
+                    {
+                        Success = false,
+                        Message = "Invalid seat number"
+                    };
+                }
 
                 var booking = new Booking
                 {
@@ -55,17 +120,13 @@ namespace BusBooking.Infrastructure.Services
                     BookingTime = DateTime.UtcNow
                 };
 
-                //_context.Bookings.Add(booking);
-
                 await _bookingrepo.AddAsync(booking);
-
                 await _context.SaveChangesAsync();
-
 
                 var payment = new Payment
                 {
                     BookingId = booking.Id,
-                    Amount = bus.Price, // make sure Price exists
+                    Amount = bus.Price,
                     PaymentMethod = method,
                     Status = "Success",
                     PaymentDate = DateTime.UtcNow
@@ -75,13 +136,31 @@ namespace BusBooking.Infrastructure.Services
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
-                return true;
-            }
 
-            catch (DbUpdateException)
+                return new BookingResult
+                {
+                    Success = true,
+                    Message = "Seat booked successfully"
+                };
+            }
+            catch (DbUpdateException ex)
             {
                 await transaction.RollbackAsync();
-                return false;
+
+                if (ex.InnerException?.Message.Contains("IX_Bookings_BusId_SeatNumber") == true)
+                {
+                    return new BookingResult
+                    {
+                        Success = false,
+                        Message = "Seat already booked"
+                    };
+                }
+
+                return new BookingResult
+                {
+                    Success = false,
+                    Message = "Database error occurred"
+                };
             }
         }
 
@@ -138,11 +217,11 @@ namespace BusBooking.Infrastructure.Services
 
 
         }
-        public async Task<bool> CancelBooking(int bookingId)
+        public async Task<bool> CancelBooking(int bookingId,int userId)
         {
             var booking=await _bookingrepo.GetByIdAsync(bookingId);
 
-            if (booking == null) return false;
+            if (booking == null||booking.UserId!=userId) return false;
 
             if (booking.Status == "Cancelled") return false;
 
