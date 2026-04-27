@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using BusBooking.Core.Entities;
+
 using BusBooking.Core.DTOs;
 
 namespace BusBooking.Core.Interfaces

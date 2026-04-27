@@ -1,7 +1,5 @@
 ﻿using BusBooking.Core.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
+
 using Microsoft.EntityFrameworkCore;
 using BusBooking.Core.Entities;
 using BusBooking.Infrastructure.Data;

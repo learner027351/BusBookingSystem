@@ -2,7 +2,7 @@
 using BusBooking.Core.Entities;
 using BusBooking.Core.Interfaces;
 using BusBooking.Infrastructure.Data;
-using Microsoft.Data.SqlClient;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace BusBooking.Infrastructure.Services
@@ -18,72 +18,7 @@ namespace BusBooking.Infrastructure.Services
             _context = context;
         }
 
-        //public async Task<bool> BookSeat(int busId, int userId, int seatNumber,PaymentMethod method)
-        //{
-
-
-        //    using var transaction=await _context.Database.BeginTransactionAsync();
-
-        //    try
-        //    {
-
-
-
-
-
-
-        //        var bus = await _context.Buses.FindAsync(busId);
-        //        if (bus == null) return false;
-
-        //        int totalSeats = int.TryParse(bus.TotalSeats, out var seats) ? seats : 0;
-
-        //        if (seatNumber > totalSeats) return false;
-
-        //        var booking = new Booking
-        //        {
-        //            BusId = busId,
-        //            UserId = userId,
-        //            SeatNumber = seatNumber,
-        //            Status = "Confirmed",
-        //            BookingTime = DateTime.UtcNow
-        //        };
-
-        //        //_context.Bookings.Add(booking);
-
-        //        await _bookingrepo.AddAsync(booking);
-
-        //        await _context.SaveChangesAsync();
-
-
-        //        var payment = new Payment
-        //        {
-        //            BookingId = booking.Id,
-        //            Amount = bus.Price, // make sure Price exists
-        //            PaymentMethod = method,
-        //            Status = "Success",
-        //            PaymentDate = DateTime.UtcNow
-        //        };
-
-        //        await _context.Payments.AddAsync(payment);
-        //        await _context.SaveChangesAsync();
-
-        //        await transaction.CommitAsync();
-        //        return true;
-        //    }
-
-        //    catch (DbUpdateException ex)
-        //    {
-
-
-        //        await transaction.RollbackAsync();
-
-        //        if (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2601)
-        //        {
-        //            return false; 
-        //        }
-        //        throw;
-        //    }
-        //}
+        
         public async Task<BookingResult> BookSeat(int busId, int userId, int seatNumber, PaymentMethod method)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
